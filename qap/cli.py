@@ -410,9 +410,14 @@ def _run_workflow(args):
             workflow.write_graph(
                 dotfilename=op.join(output_dir, run_name + ".dot"),
                 simple_form=False)
+        runargs = {'plugin': 'Linear', 'plugin_args': {}}
+
+        use_slurm = config.get('use_slurm_plugin', False)
+        if use_slurm:
+            runargs['plugin'] = 'SLURM'
+            runargs['sbatch_args'] = {'-p': 'development', '-N': 1, '-n': 1}
 
         nc_per_subject = config.get('num_cores_per_subject', 1)
-        runargs = {'plugin': 'Linear', 'plugin_args': {}}
         if nc_per_subject > 1:
             runargs['plugin'] = 'MultiProc',
             runargs['plugin_args'] = {'n_procs': nc_per_subject}
