@@ -415,8 +415,7 @@ def _run_workflow(args):
         use_slurm = config.get('use_slurm_plugin', False)
         if use_slurm:
             runargs['plugin'] = 'SLURM'
-            runargs['plugin_args']['sbatch_args'] = {
-                '-p': 'development', '-N': 1, '-n': 1}
+            runargs['plugin_args']['sbatch_args'] = '-p development -N 1 -n 1'
 
         nc_per_subject = config.get('num_cores_per_subject', 1)
         if nc_per_subject > 1:
