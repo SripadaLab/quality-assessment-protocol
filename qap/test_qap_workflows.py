@@ -7,10 +7,10 @@ def test_workflow_qap_mask():
 
     import os
     import commands
-    
+
     import pkg_resources as p
 
-    from qap.qap_workflows import run_qap_mask
+    from qap.qap_runners import run_qap_mask
     from qap.workflow_utils import build_test_case
 
 
@@ -31,7 +31,7 @@ def test_workflow_qap_mask():
                                     "workflow_reference", \
                                     "qap_head_mask", \
                                     "graph_qap_head_mask.dot"))
-                                    
+
     ref_inputs = p.resource_filename("qap", os.path.join("test_data", \
                                      "workflow_reference", \
                                      "qap_head_mask", \
@@ -45,7 +45,7 @@ def test_workflow_qap_mask():
 
     # get the workflow inputs of the workflow being tested
     wf_inputs_string = str(wf.inputs).replace("\n","")
-    
+
     wf_inputs_string = wf_inputs_string.replace(base_dir, \
                            "base_directory_here", 1)
     wf_inputs_string = wf_inputs_string.replace(anat_reorient, \
@@ -62,7 +62,7 @@ def test_workflow_qap_mask():
 
     flag, err = build_test_case(wf, ref_inputs, ref_graph, wf_inputs_string)
 
-        
+
     assert flag == 2, err
 
 
@@ -73,10 +73,10 @@ def test_workflow_qap_anatomical_spatial():
 
     import os
     import commands
-    
+
     import pkg_resources as p
 
-    from qap.qap_workflows import run_single_qap_anatomical_spatial
+    from qap.qap_runners import run_single_qap_anatomical_spatial
     from qap.workflow_utils import build_test_case
 
 
@@ -110,7 +110,7 @@ def test_workflow_qap_anatomical_spatial():
                                     "workflow_reference", \
                                     "qap_anatomical_spatial", \
                                     "graph_qap_anatomical_spatial.dot"))
-                                    
+
     ref_inputs = p.resource_filename("qap", os.path.join("test_data", \
                                      "workflow_reference", \
                                      "qap_anatomical_spatial", \
@@ -136,7 +136,7 @@ def test_workflow_qap_anatomical_spatial():
 
     # get the workflow inputs of the workflow being tested
     wf_inputs_string = str(wf.inputs).replace("\n","")
-    
+
     wf_inputs_string = wf_inputs_string.replace(base_dir, \
                            "base_directory_here", 1)
     wf_inputs_string = wf_inputs_string.replace(anat_csf_mask, \
@@ -153,7 +153,7 @@ def test_workflow_qap_anatomical_spatial():
 
     flag, err = build_test_case(wf, ref_inputs, ref_graph, wf_inputs_string)
 
-        
+
     assert flag == 2, err
 
 
@@ -164,10 +164,10 @@ def test_workflow_qap_functional_spatial():
 
     import os
     import commands
-    
+
     import pkg_resources as p
 
-    from qap.qap_workflows import run_single_qap_functional_spatial
+    from qap.qap_runners import run_single_qap_functional_spatial
     from qap.workflow_utils import build_test_case
 
 
@@ -187,7 +187,7 @@ def test_workflow_qap_functional_spatial():
                                     "workflow_reference", \
                                     "qap_functional_spatial", \
                                     "graph_qap_functional_spatial.dot"))
-                                    
+
     ref_inputs = p.resource_filename("qap", os.path.join("test_data", \
                                      "workflow_reference", \
                                      "qap_functional_spatial", \
@@ -213,7 +213,7 @@ def test_workflow_qap_functional_spatial():
 
     # get the workflow inputs of the workflow being tested
     wf_inputs_string = str(wf.inputs).replace("\n","")
-    
+
     wf_inputs_string = wf_inputs_string.replace(base_dir, \
                            "base_directory_here", 1)
     wf_inputs_string = wf_inputs_string.replace(func_brain_mask, \
@@ -224,7 +224,7 @@ def test_workflow_qap_functional_spatial():
 
     flag, err = build_test_case(wf, ref_inputs, ref_graph, wf_inputs_string)
 
-        
+
     assert flag == 2, err
 
 
@@ -235,10 +235,10 @@ def test_workflow_qap_functional_temporal():
 
     import os
     import commands
-    
+
     import pkg_resources as p
 
-    from qap.qap_workflows import run_single_qap_functional_temporal
+    from qap.qap_runners import run_single_qap_functional_temporal
     from qap.workflow_utils import build_test_case
 
 
@@ -263,7 +263,7 @@ def test_workflow_qap_functional_temporal():
                                     "workflow_reference", \
                                     "qap_functional_temporal", \
                                     "graph_qap_functional_temporal.dot"))
-                                    
+
     ref_inputs = p.resource_filename("qap", os.path.join("test_data", \
                                      "workflow_reference", \
                                      "qap_functional_temporal", \
@@ -287,7 +287,7 @@ def test_workflow_qap_functional_temporal():
 
     # get the workflow inputs of the workflow being tested
     wf_inputs_string = str(wf.inputs).replace("\n","")
-    
+
     wf_inputs_string = wf_inputs_string.replace(base_dir, \
                            "base_directory_here", 1)
     wf_inputs_string = wf_inputs_string.replace(coord_xfm, \
@@ -300,7 +300,7 @@ def test_workflow_qap_functional_temporal():
 
     flag, err = build_test_case(wf, ref_inputs, ref_graph, wf_inputs_string)
 
-        
+
     assert flag == 2, err
 
 
