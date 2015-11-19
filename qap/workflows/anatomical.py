@@ -4,6 +4,7 @@
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 
 import os
+import os.path as op
 import sys
 
 import nipype.interfaces.io as nio
