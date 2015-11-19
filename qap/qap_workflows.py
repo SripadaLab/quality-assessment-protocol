@@ -29,7 +29,7 @@ def qap_functional_spatial_workflow(workflow, resource_pool, config):
     import nipype.interfaces.utility as niu
     import nipype.algorithms.misc as nam
 
-    from qap_workflows_utils import qap_functional_spatial
+    from qap.workflows.utils import qap_functional_spatial
     from qap.viz.interfaces import PlotMosaic
 
     from workflow_utils import check_input_resources
@@ -124,7 +124,7 @@ def qap_functional_temporal_workflow(workflow, resource_pool, config):
     import nipype.interfaces.utility as niu
     import nipype.algorithms.misc as nam
 
-    from qap_workflows_utils import qap_functional_temporal
+    from qap.workflows.utils import qap_functional_temporal
     from temporal_qc import fd_jenkinson
     from qap.viz.interfaces import PlotMosaic, PlotFD
 
