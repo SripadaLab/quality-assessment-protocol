@@ -42,7 +42,7 @@ def qap_mask_workflow(name='QAPMaskWorkflow', config={}):
 
     wf = pe.Workflow(name=name)
     inputnode = pe.Node(niu.IdentityInterface(
-        fields=['anatomical_reorient', 'anatomical_brain']))
+        fields=['anatomical_reorient', 'anatomical_brain']), name='inputnode')
     outputnode = pe.Node(niu.IdentityInterface(
         fields=['head_mask'], name='outputnode'))
 
