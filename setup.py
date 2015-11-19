@@ -17,7 +17,7 @@ def main():
           download_url='https://github.com/preprocessed-connectomes-project/'\
                        'quality-assessment-protocol/tarball/1.0.2',
           license='',
-          packages=['qap', 'qap.viz'],
+          packages=['qap', 'qap.viz', 'qap.workflows'],
           package_data={'qap': ['inpoint*.txt',
                                 'test_data/*.nii.gz',
                                 'test_data/workflow_reference/*/*',

@@ -44,7 +44,8 @@ def qap_anatomical_spatial_workflow(workflow, resource_pool, config,
 
     # Check reoriented image, compute if not found
     if 'anatomical_reorient' not in resource_pool.keys():
-        from anatomical_preproc import anatomical_reorient_workflow
+        from qap.workflows.anatomical_preproc import \
+            anatomical_reorient_workflow
         arw = anatomical_reorient_workflow()
 
         workflow.connect([
@@ -59,7 +60,8 @@ def qap_anatomical_spatial_workflow(workflow, resource_pool, config,
 
     # Check brain image, compute if not found
     if 'anatomical_brain' not in resource_pool.keys():
-        from anatomical_preproc import anatomical_skullstrip_workflow
+        from qap.workflows.anatomical_preproc import \
+            anatomical_skullstrip_workflow
         asw = anatomical_skullstrip_workflow()
 
         workflow.connect([
@@ -73,7 +75,8 @@ def qap_anatomical_spatial_workflow(workflow, resource_pool, config,
 
     # Check brain mask, compute if not found
     if 'qap_head_mask' not in resource_pool.keys():
-        from anatomical_preproc import qap_mask_workflow
+        from qap.workflows.anatomical_preproc import \
+            qap_mask_workflow
         qmw = qap_mask_workflow(config=config)
 
         workflow.connect([
@@ -93,7 +96,8 @@ def qap_anatomical_spatial_workflow(workflow, resource_pool, config,
     if (('anatomical_gm_mask' not in resource_pool.keys()) or
         ('anatomical_wm_mask' not in resource_pool.keys()) or
             ('anatomical_csf_mask' not in resource_pool.keys())):
-        from anatomical_preproc import segmentation_workflow
+        from qap.workflows.anatomical_preproc import \
+            segmentation_workflow
         qsw = segmentation_workflow()
 
         workflow.connect([
