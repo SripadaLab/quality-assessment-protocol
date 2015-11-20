@@ -13,6 +13,7 @@ import nipype.interfaces.utility as niu
 from nipype.interfaces import fsl
 
 from qap.workflow_utils import check_input_resources, check_config_settings
+from qap.workflows.base import ConditionalWorkflow
 
 
 def qap_anatomical_spatial_workflow(workflow, resource_pool, config,
@@ -48,16 +49,16 @@ def qap_anatomical_spatial_workflow(workflow, resource_pool, config,
         name='qap_anatomical_spatial')
 
     # Check reoriented image, compute if not found
-    if 'anatomical_reorient' not in resource_pool.keys():
-        arw = anatomical_reorient_workflow()
-        workflow.connect([
-            (inputnode, arw,
-                [('anatomical_scan', 'inputnode.anatomical_scan')]),
-            (arw, cache['anatomical_reorient'],
-                [('outputnode.anatomical_reorient', 'anatomical_reorient')])
-        ])
-    else:
-        cache['anatomical_reorient'].inputs.anatomical_reorient = \
+    arw = anatomical_reorient_workflow()
+    workflow.connect([
+        (inputnode, arw,
+            [('anatomical_scan', 'inputnode.anatomical_scan')]),
+        (arw, cache['anatomical_reorient'],
+            [('outputnode.anatomical_reorient', 'anatomical_reorient')])
+    ])
+
+    if 'anatomical_reorient' in resource_pool.keys():
+        arw.conditions.anatomical_reorient = \
             resource_pool['anatomical_reorient']
 
     # Check brain image, compute if not found
@@ -153,7 +154,8 @@ def anatomical_reorient_workflow(name='QAPAnatReorient'):
     """
     from nipype.interfaces.afni import preprocess as afp
 
-    wf = pe.Workflow(name=name)
+    wf = ConditionalWorkflow(name=name, condition_map=(
+        'anatomical_reorient', 'outputnode.anatomical_reorient'))
     inputnode = pe.Node(niu.IdentityInterface(fields=['anatomical_scan']),
                         name='inputnode')
     outputnode = pe.Node(niu.IdentityInterface(fields=['anatomical_reorient']),
