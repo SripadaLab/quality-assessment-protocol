@@ -13,11 +13,11 @@ import nipype.interfaces.utility as niu
 from nipype.interfaces import fsl
 
 from qap.workflow_utils import check_input_resources, check_config_settings
-from qap.workflows.base import ConditionalWorkflow
+from nipype import logging
+logger = logging.getLogger('workflow')
 
 
-def qap_anatomical_spatial_workflow(workflow, resource_pool, config,
-                                    plot_mask=False):
+def qap_anatomical_spatial_workflow(workflow, config, plot_mask=False):
     import nipype.algorithms.misc as nam
     from utils import qap_anatomical_spatial
     from qap.viz.interfaces import PlotMosaic
@@ -33,98 +33,69 @@ def qap_anatomical_spatial_workflow(workflow, resource_pool, config,
     if 'site_name' in config.keys():
         inputnode.inputs.site_name = config['site_name']
 
-    if 'anatomical_scan' in resource_pool.keys():
-        inputnode.inputs.anatomical_scan = resource_pool['anatomical_scan']
-
     # resource pool should have:
     cfields = [
         'anatomical_reorient', 'head_mask_path', 'anatomical_gm_mask',
         'anatomical_wm_mask', 'anatomical_csf_mask', 'anatomical_brain']
-    cache = {k: pe.Node(niu.IdentityInterface(fields=[k]),
-                        name='cache_%s' % k) for k in cfields}
+    cache = pe.Node(niu.IdentityInterface(fields=cfields), name='cachenode')
 
     spatial = pe.Node(niu.Function(
         input_names=cfields[:-1]+settings,
         output_names=['qc'], function=qap_anatomical_spatial),
         name='qap_anatomical_spatial')
+    workflow.connect([(inputnode, spatial, [(k, k) for k in settings])])
 
-    # Check reoriented image, compute if not found
     arw = anatomical_reorient_workflow()
     workflow.connect([
         (inputnode, arw,
             [('anatomical_scan', 'inputnode.anatomical_scan')]),
-        (arw, cache['anatomical_reorient'],
-            [('outputnode.anatomical_reorient', 'anatomical_reorient')])
+        (arw, spatial,
+            [('outputnode.anatomical_reorient', 'anatomical_reorient')]),
+        (cache, arw,
+            [('anatomical_reorient', 'conditions.anatomical_reorient')])
     ])
 
-    if 'anatomical_reorient' in resource_pool.keys():
-        arw.conditions.anatomical_reorient = \
-            resource_pool['anatomical_reorient']
+    asw = anatomical_skullstrip_workflow()
+    workflow.connect([
+        (arw, asw, [('outputnode.anatomical_reorient',
+                     'inputnode.anatomical_reorient')]),
+        (cache, asw, [('anatomical_brain', 'conditions.anatomical_brain')]),
+        (asw, spatial,
+            [('outputnode.anatomical_brain', 'anatomical_brain')])
+    ])
 
-    # Check brain image, compute if not found
-    if 'anatomical_brain' not in resource_pool.keys():
-        asw = anatomical_skullstrip_workflow()
-        workflow.connect([
-            (cache['anatomical_reorient'], asw,
-                [('anatomical_reorient', 'inputnode.anatomical_reorient')]),
-            (asw, cache['anatomical_brain'],
-                [('outputnode.anatomical_brain', 'anatomical_brain')])
-        ])
-    else:
-        cache['anatomical_brain'].inputs.anatomical_brain = \
-            resource_pool['anatomical_brain']
+    qmw = qap_mask_workflow(config=config)
+    workflow.connect([
+        (arw, qmw, [('outputnode.anatomical_reorient',
+                     'inputnode.anatomical_reorient')]),
+        (asw, qmw, [('outputnode.anatomical_brain',
+                     'inputnode.anatomical_brain')]),
+        (cache, qmw, [('head_mask_path', 'conditions.head_mask')]),
+        (qmw, spatial,
+            [('outputnode.head_mask', 'head_mask_path')])
+    ])
 
-    # Check brain mask, compute if not found
-    if 'qap_head_mask' not in resource_pool.keys():
-        qmw = qap_mask_workflow(config=config)
-        workflow.connect([
-            (cache['anatomical_reorient'], qmw,
-                [('anatomical_reorient', 'inputnode.anatomical_reorient')]),
-            (cache['anatomical_brain'], qmw,
-                [('anatomical_brain', 'inputnode.anatomical_brain')]),
-            (qmw, cache['head_mask_path'],
-                [('outputnode.head_mask', 'head_mask_path')])
-        ])
-    else:
-        cache['head_mask_path'].inputs.head_mask_path = \
-            resource_pool['qap_head_mask']
-
-    # Check segmentations
-    if (('anatomical_gm_mask' not in resource_pool.keys()) or
-        ('anatomical_wm_mask' not in resource_pool.keys()) or
-            ('anatomical_csf_mask' not in resource_pool.keys())):
-
-        qsw = segmentation_workflow()
-        workflow.connect([
-            (cache['anatomical_brain'], qsw,
-                [('anatomical_brain', 'inputnode.anatomical_brain')]),
-            (qsw, cache['anatomical_gm_mask'],
-                [('outputnode.anatomical_gm_mask', 'anatomical_gm_mask')]),
-            (qsw, cache['anatomical_wm_mask'],
-                [('outputnode.anatomical_wm_mask', 'anatomical_wm_mask')]),
-            (qsw, cache['anatomical_csf_mask'],
-                [('outputnode.anatomical_csf_mask', 'anatomical_csf_mask')])
-        ])
-    else:
-        cache['anatomical_gm_mask'].inputs.anatomical_gm_mask = \
-            resource_pool['anatomical_gm_mask']
-        cache['anatomical_wm_mask'].inputs.anatomical_wm_mask = \
-            resource_pool['anatomical_wm_mask']
-        cache['anatomical_csf_mask'].inputs.anatomical_csf_mask = \
-            resource_pool['anatomical_csf_mask']
-
-    # Connect images
-    workflow.connect(
-        [(cache[f], spatial, [(f, f)]) for f in cfields] +
-        [(inputnode, spatial, [(k, k) for k in settings])]
-    )
+    qsw = segmentation_workflow()
+    workflow.connect([
+        (asw, qsw, [('outputnode.anatomical_brain',
+                     'inputnode.anatomical_brain')]),
+        (cache, qsw, [
+            ('anatomical_gm_mask', 'conditions.anatomical_gm_mask'),
+            ('anatomical_wm_mask', 'conditions.anatomical_wm_mask'),
+            ('anatomical_csf_mask', 'conditions.anatomical_csf_mask')]),
+        (qsw, spatial,
+            [('outputnode.anatomical_gm_mask', 'anatomical_gm_mask')]),
+        (qsw, spatial,
+            [('outputnode.anatomical_wm_mask', 'anatomical_wm_mask')]),
+        (qsw, spatial,
+            [('outputnode.anatomical_csf_mask', 'anatomical_csf_mask')])
+    ])
 
     # Write CSV row
     out_csv = op.join(config['output_directory'], 'qap_anatomical_spatial.csv')
     spatial_to_csv = pe.Node(
         nam.AddCSVRow(in_file=out_csv), name='qap_anatomical_spatial_to_csv')
     workflow.connect(spatial, 'qc', spatial_to_csv, '_outputs')
-    resource_pool['qap_anatomical_spatial'] = (spatial_to_csv, 'csv_file')
 
     # Append plot generation
     if config.get('write_report', False):
@@ -137,15 +108,13 @@ def qap_anatomical_spatial_workflow(workflow, resource_pool, config,
 
         plot.inputs.metadata = metadata
         plot.inputs.title = 'Anatomical reoriented'
-        workflow.connect(cache['anatomical_reorient'], 'anatomical_reorient',
+        workflow.connect(arw, 'outputnode.anatomical_reorient',
                          plot, 'in_file')
         if plot_mask:
-            workflow.connect(cache['anatomical_reorient'], 'head_mask_path',
+            workflow.connect(qmw, 'outputnode.head_mask_path',
                              plot, 'in_mask')
 
-        resource_pool['qap_mosaic'] = (plot, 'out_file')
-
-    return workflow, resource_pool
+    return workflow
 
 
 def anatomical_reorient_workflow(name='QAPAnatReorient'):
@@ -154,7 +123,7 @@ def anatomical_reorient_workflow(name='QAPAnatReorient'):
     """
     from nipype.interfaces.afni import preprocess as afp
 
-    wf = ConditionalWorkflow(name=name, condition_map=(
+    wf = pe.ConditionalWorkflow(name=name, condition_map=(
         'anatomical_reorient', 'outputnode.anatomical_reorient'))
     inputnode = pe.Node(niu.IdentityInterface(fields=['anatomical_scan']),
                         name='inputnode')
@@ -175,7 +144,9 @@ def qap_mask_workflow(name='QAPMaskWorkflow', config={}):
     from nipype.interfaces.fsl.base import Info
     from utils import select_thresh, slice_head_mask
 
-    wf = pe.Workflow(name=name)
+    wf = pe.ConditionalWorkflow(name=name, condition_map=[
+        ('head_mask', 'outputnode.head_mask')])
+
     inputnode = pe.Node(niu.IdentityInterface(
         fields=['anatomical_reorient', 'anatomical_brain']), name='inputnode')
     outputnode = pe.Node(niu.IdentityInterface(
@@ -258,7 +229,8 @@ def flirt_anatomical_linear_registration(name='QAPflirtLReg', config={}):
 def anatomical_skullstrip_workflow(name='QAPSkullStripWorkflow'):
     from nipype.interfaces.afni import preprocess as afp
 
-    wf = pe.Workflow(name=name)
+    wf = pe.ConditionalWorkflow(name=name, condition_map=[
+        ('anatomical_brain', 'outputnode.anatomical_brain')])
     inputnode = pe.Node(niu.IdentityInterface(fields=['anatomical_reorient']),
                         name='inputnode')
     outputnode = pe.Node(niu.IdentityInterface(fields=['anatomical_brain']),
@@ -279,7 +251,10 @@ def anatomical_skullstrip_workflow(name='QAPSkullStripWorkflow'):
 
 
 def segmentation_workflow(name='QAPSegmentationWorkflow'):
-    wf = pe.Workflow(name=name)
+    wf = pe.ConditionalWorkflow(name=name, condition_map=[
+        ('anatomical_%s_mask' % k, 'outputnode.anatomical_%s_mask' % k)
+        for k in ['gm', 'wm', 'csf']])
+
     inputnode = pe.Node(niu.IdentityInterface(
         fields=['anatomical_brain']), name='inputnode')
     outputnode = pe.Node(niu.IdentityInterface(

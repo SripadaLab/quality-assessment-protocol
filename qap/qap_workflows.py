@@ -9,8 +9,39 @@ import os.path as op
 def qap_anatomical_spatial_workflow(workflow, resource_pool, config,
                                     plot_mask=False):
     from qap.workflows.anatomical import qap_anatomical_spatial_workflow
-    return qap_anatomical_spatial_workflow(workflow, resource_pool, config,
-                                           plot_mask)
+    wf = qap_anatomical_spatial_workflow(workflow, config, plot_mask)
+
+    if 'anatomical_scan' in resource_pool.keys():
+        wf.inputs.inputnode.anatomical_scan = resource_pool['anatomical_scan']
+
+    if 'anatomical_reorient' in resource_pool.keys():
+        wf.inputs.cachenode.anatomical_reorient = \
+            resource_pool['anatomical_reorient']
+    if 'anatomical_brain' in resource_pool.keys():
+        wf.inputs.cachenode.anatomical_brain = \
+            resource_pool['anatomical_brain']
+    if 'qap_head_mask' in resource_pool.keys():
+        wf.inputs.cachenode.head_mask_path = \
+            resource_pool['qap_head_mask']
+
+    if (('anatomical_gm_mask' in resource_pool.keys()) and
+        ('anatomical_wm_mask' in resource_pool.keys()) and
+            ('anatomical_csf_mask' in resource_pool.keys())):
+        wf.inputs.cachenode.anatomical_gm_mask = \
+            resource_pool['anatomical_gm_mask']
+        wf.inputs.cachenode.anatomical_wm_mask = \
+            resource_pool['anatomical_wm_mask']
+        wf.inputs.cachenode.inputs.anatomical_csf_mask = \
+            resource_pool['anatomical_csf_mask']
+
+    resource_pool['qap_anatomical_spatial'] = (
+        wf.get_node('qap_anatomical_spatial_to_csv'), 'csv_file')
+
+    if config.get('write_report', False):
+        resource_pool['qap_mosaic'] = (
+            wf.get_node('plot_mosaic'), 'out_file')
+
+    return wf, resource_pool
 
 
 def qap_functional_spatial_workflow(workflow, resource_pool, config):
