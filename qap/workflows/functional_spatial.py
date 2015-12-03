@@ -21,9 +21,10 @@ def qap_functional_spatial_workflow(workflow, config, plot_mask=False):
     from qap.viz.interfaces import PlotMosaic
 
     settings = ['subject_id', 'session_id', 'scan_id', 'site_name',
-                'direction', 'start_idx', 'stop_idx']
+                'direction']
     inputnode = pe.Node(niu.IdentityInterface(
-        fields=['functional_scan']+settings), name='inputnode')
+        fields=['functional_scan', 'start_idx', 'stop_idx']+settings),
+        name='inputnode')
 
     # Subject infos
     inputnode.inputs.subject_id = config['subject_id']

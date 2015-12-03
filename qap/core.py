@@ -5,6 +5,8 @@
 
 import os
 import os.path as op
+import sys
+from traceback import format_exception
 import time
 import argparse
 import yaml
@@ -214,7 +216,6 @@ class QAProtocolCLI:
         ns_at_once = config.get('num_subjects_at_once', 1)
         write_report = config.get('write_report', False)
 
-
         # Create output directory
         try:
             os.makedirs(config["output_directory"])
@@ -244,6 +245,20 @@ class QAProtocolCLI:
             results = self._run_here(run_name)
         else:
             results = self._run_cloud(run_name)
+
+        # Report errors
+        formatted = []
+        for r in results:
+            if 'traceback' in r.keys():
+                formatted.append('subject_id=%s, session=%s, scan=%s' %
+                                 (r['id'], r['session'], r['scan']))
+                formatted.append('Traceback:')
+                formatted += r['traceback'] + ['%s\n\n']
+
+        if formatted:
+            with open(op.join(config["output_directory"], 'workflows.err'),
+                      'w+') as f:
+                f.write('\n'.join(formatted))
 
         # PDF reporting
         if write_report:
@@ -421,10 +436,12 @@ def _run_workflow(args):
     try:
         workflow.run(**runargs)
         rt['status'] = 'finished'
-    except Exception as e:  # TODO We should be more specific here ...
-        logger.warn('Workflow not run: %s' % e)
-        rt.update({'status': 'failed', 'msg': e})
+    except Exception as e:
         # ... however this is run inside a pool.map: do not raise Execption
+        etype, evalue, etrace = sys.exc_info()
+        tb = format_exception(etype, evalue, etrace)
+        rt.update({'status': 'failed', 'msg': ('%s' % e), 'traceback': tb})
+
 #    # Remove working directory when done
 #    if not keep_outputs:
 #        try:
