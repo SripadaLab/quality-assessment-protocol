@@ -381,7 +381,7 @@ def _run_workflow(args):
 
     # start connecting the pipeline
     if 'qap_' + qap_type not in resource_pool.keys():
-        from qap import qap_workflows as qw
+        from qap.workflows import wrappers as qw
         wf_builder = getattr(qw, 'qap_' + qap_type + '_workflow')
         workflow, resource_pool = wf_builder(workflow, resource_pool, config)
 

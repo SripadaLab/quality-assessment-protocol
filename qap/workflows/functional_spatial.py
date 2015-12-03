@@ -100,7 +100,20 @@ def func_motion_correct_workflow(name='QAPFunctionalHMC',
     A head motion correction (HMC) workflow for functional scans
     """
     from nipype.interfaces.afni import preprocess as afp
-    from utils import _get_idx
+
+    def _getidx(in_files, start_idx, stop_idx):
+        from nibabel import load
+        from nipype.interfaces.base import isdefined
+        nvols = load(in_files).shape[3]
+        max_idx = nvols - 1
+
+        if (not isdefined(start_idx) or start_idx < 0 or start_idx > max_idx):
+            start_idx = 0
+
+        if (not isdefined(stop_idx) or stop_idx < start_idx or
+                stop_idx > max_idx):
+            stop_idx = max_idx
+        return start_idx, stop_idx
 
     wf = pe.ConditionalWorkflow(name=name, condition_map=(
         'func_motion_correct', 'outputnode.func_motion_correct'))
@@ -112,8 +125,8 @@ def func_motion_correct_workflow(name='QAPFunctionalHMC',
         name='outputnode')
 
     func_get_idx = pe.Node(niu.Function(
-        input_names=['in_files', 'stop_idx', 'start_idx'],
-        output_names=['stop_idx', 'start_idx'], function=_get_idx),
+        input_names=['in_files', 'start_idx', 'stop_idx'],
+        output_names=['start_idx', 'stop_idx'], function=_getidx),
         name='func_get_idx')
 
     func_drop_trs = pe.Node(afp.Calc(expr='a', outputtype='NIFTI_GZ'),

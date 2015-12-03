@@ -139,12 +139,9 @@ class QAProtocolCLI:
                             sub_info_tuple = (subid, session, scan)
                             if sub_info_tuple not in flat_sub_dict.keys():
                                 flat_sub_dict[sub_info_tuple] = {}
-
                             flat_sub_dict[sub_info_tuple].update(resource_dict)
-
                     elif resource == "site_name":
                         sites_dict[subid] = subdict[subid][session][resource]
-
                     else:
                         filepath = subdict[subid][session][resource]
                         resource_dict = {}
@@ -153,7 +150,6 @@ class QAProtocolCLI:
 
                         if sub_info_tuple not in flat_sub_dict.keys():
                             flat_sub_dict[sub_info_tuple] = {}
-
                         flat_sub_dict[sub_info_tuple].update(resource_dict)
 
             # in case some subjects have site names and others don't
@@ -163,7 +159,7 @@ class QAProtocolCLI:
                         sites_dict[subid] = None
 
         # Start the magic
-        logger.info('There are %d subjects in the pool' %
+        logger.info('There are %d workflows in the pool' %
                     len(flat_sub_dict.keys()))
 
         # Stack workflow args
@@ -299,7 +295,19 @@ def _run_workflow(args):
     resource_pool, config, subject_info, run_name, site_name = args
     sub_id = str(subject_info[0])
 
-    qap_type = config['qap_type']
+    qap_type = None
+
+    for k in resource_pool:
+        if 'anatomical' in k:
+            qap_type = 'anatomical_spatial'
+            break
+        elif 'func' in k:
+            qap_type = 'functional_spatial'
+            break
+
+    if qap_type is None:
+        raise RuntimeError('Could not determine an appropriate protocol'
+                           ' for resource pool %s' % resource_pool)
 
     if subject_info[1]:
         session_id = subject_info[1]
@@ -384,7 +392,7 @@ def _run_workflow(args):
 
     # start connecting the pipeline
     if 'qap_' + qap_type not in resource_pool.keys():
-        from qap import qap_workflows as qw
+        from qap.workflows import wrappers as qw
         wf_builder = getattr(qw, 'qap_' + qap_type + '_workflow')
         workflow, resource_pool = wf_builder(workflow, resource_pool, config)
 
