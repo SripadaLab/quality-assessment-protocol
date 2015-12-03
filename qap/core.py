@@ -107,7 +107,7 @@ class QAProtocolCLI:
             self._config = yaml.load(f)
 
         self._config['pipeline_config_yaml'] = args.config
-        self._config['qap_type'] = 'anatomical_spatial'
+        self._config['qap_type'] = 'functional_spatial'
         self._config['output_directory'] = op.abspath(
             self._config.get('output_directory', os.getcwd()))
 

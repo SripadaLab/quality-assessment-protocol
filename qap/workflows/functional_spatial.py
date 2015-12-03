@@ -117,6 +117,9 @@ def func_motion_correct_workflow(name='QAPFunctionalHMC',
 
     inputnode = pe.Node(niu.IdentityInterface(
         fields=['functional_scan', 'start_idx', 'stop_idx']), name='inputnode')
+    outputnode = pe.Node(niu.IdentityInterface(
+        fields=['func_motion_correct', 'coordinate_transformation']),
+        name='outputnode')
 
     func_get_idx = pe.Node(niu.Function(
         input_names=['in_files', 'stop_idx', 'start_idx'],
@@ -154,7 +157,7 @@ def func_motion_correct_workflow(name='QAPFunctionalHMC',
         (func_get_mean_RPI, func_hmc, [('out_file', 'basefile')]),
         (func_hmc, func_get_mean_motion, [('out_file', 'in_file')]),
         (func_reorient, func_hmc_A, [('out_file', 'in_file')]),
-        (func_get_mean_motion, func_hmc_A, [('out_file', 'basefile')])
+        (func_get_mean_motion, func_hmc_A, [('out_file', 'basefile')]),
         (func_hmc_A, outputnode, [
             ('out_file', 'func_motion_correct'),
             ('oned_matrix_save', 'coordinate_transformation')])

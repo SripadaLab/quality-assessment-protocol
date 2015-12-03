@@ -41,7 +41,7 @@ def qap_anatomical_spatial_workflow(workflow, resource_pool, config,
         wf.get_node('qap_anatomical_spatial_to_csv'), 'csv_file')
 
     if config.get('write_report', False):
-        resource_pool['qap_anatomical_mosaic'] = (
+        resource_pool['qap_mosaic'] = (
             wf.get_node('plot_mosaic'), 'out_file')
 
     return wf, resource_pool
@@ -56,7 +56,7 @@ def qap_functional_spatial_workflow(workflow, resource_pool, config,
 
     # Connect principal input
     if 'functional_scan' in resource_pool.keys():
-        wf.inputs.inputnode.anatomical_scan = resource_pool['functional_scan']
+        wf.inputs.inputnode.functional_scan = resource_pool['functional_scan']
 
     # Connect possibly cached inputs
     if 'mean_functional' in resource_pool.keys():
@@ -70,7 +70,7 @@ def qap_functional_spatial_workflow(workflow, resource_pool, config,
         wf.get_node('qap_functional_spatial_to_csv'), 'csv_file')
 
     if config.get('write_report', False):
-        resource_pool['qap_functional_mosaic'] = (
+        resource_pool['qap_mosaic'] = (
             wf.get_node('plot_mosaic'), 'out_file')
 
     return wf, resource_pool
