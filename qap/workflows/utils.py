@@ -362,3 +362,45 @@ def qap_functional_temporal(
         qc['site'] = site_name
 
     return qc
+
+
+def get_idx(in_files, stop_idx=None, start_idx=None):
+
+    """
+    Method to get the first and the last volume for
+    the functional run. It verifies the user specified
+    first and last volume. If the values are not valid, it
+    calculates and returns the very first and the last slice
+
+    Parameters
+    ----------
+    in_file : string (nifti file)
+       Path to input functional run
+
+    stop_idx : int
+        Last volume to be considered, specified by user
+        in the configuration file
+
+    stop_idx : int
+        First volume to be considered, specified by user
+        in the configuration file
+
+    Returns
+    -------
+    stop_idx :  int
+        Value of first volume to consider for the functional run
+
+    start_idx : int
+        Value of last volume to consider for the functional run
+
+    """
+    from nibabel import load
+    nvols = load(in_files).shape[3]
+
+    if (start_idx is None) or (start_idx < 0) or (start_idx > (nvols - 1)):
+        start_idx = 0
+
+    if (stop_idx is None) or (stop_idx > (nvols - 1)):
+        stop_idx = nvols - 1
+
+    return stop_idx, start_idx

@@ -12,7 +12,6 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as niu
 from nipype.interfaces import fsl
 
-from qap.workflow_utils import check_input_resources, check_config_settings
 from nipype import logging
 logger = logging.getLogger('workflow')
 
@@ -318,6 +317,8 @@ def _pick_seg_type(probability_maps, seg_type):
     return None
 
 # DEPRECATED / UNFINISHED code ---------------------------------------
+# from qap.workflow_utils import check_input_resources, check_config_settings
+#
 # def ants_anatomical_linear_registration(workflow, resource_pool, config):
 #
 #    # resource pool should have:

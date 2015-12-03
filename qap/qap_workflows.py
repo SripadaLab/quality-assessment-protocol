@@ -11,9 +11,11 @@ def qap_anatomical_spatial_workflow(workflow, resource_pool, config,
     from qap.workflows.anatomical import qap_anatomical_spatial_workflow
     wf = qap_anatomical_spatial_workflow(workflow, config, plot_mask)
 
+    # Connect principal input
     if 'anatomical_scan' in resource_pool.keys():
         wf.inputs.inputnode.anatomical_scan = resource_pool['anatomical_scan']
 
+    # Connect possibly cached inputs
     if 'anatomical_reorient' in resource_pool.keys():
         wf.inputs.cachenode.anatomical_reorient = \
             resource_pool['anatomical_reorient']
@@ -34,111 +36,44 @@ def qap_anatomical_spatial_workflow(workflow, resource_pool, config,
         wf.inputs.cachenode.inputs.anatomical_csf_mask = \
             resource_pool['anatomical_csf_mask']
 
+    # Maintain backwards compatibility with resource_pool
     resource_pool['qap_anatomical_spatial'] = (
         wf.get_node('qap_anatomical_spatial_to_csv'), 'csv_file')
 
     if config.get('write_report', False):
-        resource_pool['qap_mosaic'] = (
+        resource_pool['qap_anatomical_mosaic'] = (
             wf.get_node('plot_mosaic'), 'out_file')
 
     return wf, resource_pool
 
 
-def qap_functional_spatial_workflow(workflow, resource_pool, config):
+def qap_functional_spatial_workflow(workflow, resource_pool, config,
+                                    plot_mask=False):
+    from qap.workflows.functional_spatial import \
+        qap_functional_spatial_workflow
 
-    # resource pool should have:
-    #     mean_functional
-    #     functional_brain_mask
+    wf = qap_functional_spatial_workflow(workflow, config, plot_mask)
 
-    import os
-    import sys
+    # Connect principal input
+    if 'functional_scan' in resource_pool.keys():
+        wf.inputs.inputnode.anatomical_scan = resource_pool['functional_scan']
 
-    import nipype.interfaces.io as nio
-    import nipype.pipeline.engine as pe
-
-    import nipype.algorithms.misc as nam
-    import nipype.interfaces.utility as niu
-    import nipype.algorithms.misc as nam
-
-    from qap.workflows.utils import qap_functional_spatial
-    from qap.viz.interfaces import PlotMosaic
-
-    from workflow_utils import check_input_resources
-
-    if 'mean_functional' not in resource_pool.keys():
-        from functional_preproc import mean_functional_workflow
-        workflow, resource_pool = \
-            mean_functional_workflow(workflow, resource_pool, config)
-
-    if 'functional_brain_mask' not in resource_pool.keys():
-        from functional_preproc import functional_brain_mask_workflow
-        workflow, resource_pool = \
-            functional_brain_mask_workflow(workflow, resource_pool, config)
-
-    spatial_epi = pe.Node(niu.Function(
-        input_names=['mean_epi', 'func_brain_mask', 'direction', 'subject_id',
-                     'session_id', 'scan_id', 'site_name'],
-        output_names=['qc'], function=qap_functional_spatial),
-        name='qap_functional_spatial')
-
-    # Subject infos
-    if 'ghost_direction' not in config.keys():
-        config['ghost_direction'] = 'y'
-
-    spatial_epi.inputs.direction = config['ghost_direction']
-    spatial_epi.inputs.subject_id = config['subject_id']
-    spatial_epi.inputs.session_id = config['session_id']
-    spatial_epi.inputs.scan_id = config['scan_id']
-
-    if 'site_name' in config.keys():
-        spatial_epi.inputs.site_name = config['site_name']
-
-    if len(resource_pool['mean_functional']) == 2:
-        node, out_file = resource_pool['mean_functional']
-        workflow.connect(node, out_file, spatial_epi, 'mean_epi')
-    else:
-        spatial_epi.inputs.mean_epi = resource_pool['mean_functional']
-
-    if len(resource_pool['functional_brain_mask']) == 2:
-        node, out_file = resource_pool['functional_brain_mask']
-        workflow.connect(node, out_file, spatial_epi, 'func_brain_mask')
-    else:
-        spatial_epi.inputs.func_brain_mask = \
+    # Connect possibly cached inputs
+    if 'mean_functional' in resource_pool.keys():
+        wf.inputs.cachenode.mean_functional = resource_pool['mean_functional']
+    if 'functional_brain_mask' in resource_pool.keys():
+        wf.inputs.cachenode.functional_brain_mask = \
             resource_pool['functional_brain_mask']
 
+    # Maintain backwards compatibility with resource_pool
+    resource_pool['qap_functional_spatial'] = (
+        wf.get_node('qap_functional_spatial_to_csv'), 'csv_file')
+
     if config.get('write_report', False):
-        plot = pe.Node(PlotMosaic(), name='plot_mosaic')
-        plot.inputs.subject = config['subject_id']
+        resource_pool['qap_functional_mosaic'] = (
+            wf.get_node('plot_mosaic'), 'out_file')
 
-        metadata = [config['session_id'], config['scan_id']]
-        if 'site_name' in config.keys():
-            metadata.append(config['site_name'])
-
-        plot.inputs.metadata = metadata
-        plot.inputs.title = 'Mean EPI'
-
-        if len(resource_pool['mean_functional']) == 2:
-            node, out_file = resource_pool['mean_functional']
-            workflow.connect(node, out_file, plot, 'in_file')
-        else:
-            plot.inputs.in_file = resource_pool['mean_functional']
-
-        # Enable this if we want masks
-        # if len(resource_pool['functional_brain_mask']) == 2:
-        #     node, out_file = resource_pool['functional_brain_mask']
-        #     workflow.connect(node, out_file, plot, 'in_mask')
-        # else:
-        #     plot.inputs.in_mask = resource_pool['functional_brain_mask']
-        resource_pool['qap_mosaic'] = (plot, 'out_file')
-
-    out_csv = op.join(
-        config['output_directory'], 'qap_functional_spatial.csv')
-    spatial_epi_to_csv = pe.Node(
-        nam.AddCSVRow(in_file=out_csv), name='qap_functional_spatial_to_csv')
-    workflow.connect(spatial_epi, 'qc', spatial_epi_to_csv, '_outputs')
-    resource_pool['qap_functional_spatial'] = (spatial_epi_to_csv, 'csv_file')
-
-    return workflow, resource_pool
+    return wf, resource_pool
 
 
 def qap_functional_temporal_workflow(workflow, resource_pool, config):
