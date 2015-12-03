@@ -364,7 +364,7 @@ def qap_functional_temporal(
     return qc
 
 
-def get_idx(in_files, stop_idx=None, start_idx=None):
+def _get_idx(in_files, stop_idx=None, start_idx=None):
 
     """
     Method to get the first and the last volume for

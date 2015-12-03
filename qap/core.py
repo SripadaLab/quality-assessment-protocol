@@ -252,8 +252,7 @@ class QAProtocolCLI:
             if 'traceback' in r.keys():
                 formatted.append('subject_id=%s, session=%s, scan=%s' %
                                  (r['id'], r['session'], r['scan']))
-                formatted.append('Traceback:')
-                formatted += r['traceback'] + ['%s\n\n']
+                formatted += [''.join(r['traceback']) + '\n']
 
         if formatted:
             with open(op.join(config["output_directory"], 'workflows.err'),

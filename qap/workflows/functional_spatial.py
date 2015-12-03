@@ -26,17 +26,6 @@ def qap_functional_spatial_workflow(workflow, config, plot_mask=False):
         fields=['functional_scan', 'start_idx', 'stop_idx']+settings),
         name='inputnode')
 
-    # Subject infos
-    inputnode.inputs.subject_id = config['subject_id']
-    inputnode.inputs.session_id = config['session_id']
-    inputnode.inputs.scan_id = config['scan_id']
-    inputnode.inputs.direction = config.get('ghost_direction', 'y')
-    inputnode.inputs.start_idx = config.get('start_idx', 0)
-    inputnode.inputs.stop_idx = config.get('stop_idx', None)
-
-    if 'site_name' in config.keys():
-        inputnode.inputs.site_name = config['site_name']
-
     # resource pool should have:
     cfields = ['mean_functional', 'func_motion_correct',
                'functional_brain_mask']
@@ -111,7 +100,7 @@ def func_motion_correct_workflow(name='QAPFunctionalHMC',
     A head motion correction (HMC) workflow for functional scans
     """
     from nipype.interfaces.afni import preprocess as afp
-    from utils import get_idx
+    from utils import _get_idx
 
     wf = pe.ConditionalWorkflow(name=name, condition_map=(
         'func_motion_correct', 'outputnode.func_motion_correct'))
@@ -124,7 +113,7 @@ def func_motion_correct_workflow(name='QAPFunctionalHMC',
 
     func_get_idx = pe.Node(niu.Function(
         input_names=['in_files', 'stop_idx', 'start_idx'],
-        output_names=['stop_idx', 'start_idx'], function=get_idx),
+        output_names=['stop_idx', 'start_idx'], function=_get_idx),
         name='func_get_idx')
 
     func_drop_trs = pe.Node(afp.Calc(expr='a', outputtype='NIFTI_GZ'),
