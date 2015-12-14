@@ -257,17 +257,22 @@ class QAProtocolCLI:
 
         # PDF reporting
         if write_report:
+            from glob import glob
             from qap.viz.reports import workflow_report
             logger.info('Writing PDF reports')
-            qap_type = 'qap_' + config['qap_type']
-            in_csv = op.join(config['output_directory'], '%s.csv' % qap_type)
+            out_files = glob(op.join(config['output_directory'], 'qap_*.csv'))
 
-            reports = workflow_report(in_csv, qap_type, run_name, results,
-                                      out_dir=config['output_directory'])
+            for in_csv in out_files:
+                qap_type, _ = op.splitext(op.basename(in_csv))
 
-            for k, v in reports.iteritems():
-                if v['success']:
-                    logger.info('Written report (%s) in %s' % (k, v['path']))
+                reports = workflow_report(
+                    in_csv, qap_type, run_name, results,
+                    out_dir=config['output_directory'])
+
+                for k, v in reports.iteritems():
+                    if v['success']:
+                        logger.info('Written report (%s) in %s' %
+                                    (k, v['path']))
 
 
 def _run_workflow(args):
