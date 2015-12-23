@@ -115,14 +115,11 @@ def func_motion_correct_workflow(name='QAPFunctionalHMC',
             stop_idx = max_idx
         return start_idx, stop_idx
 
-    wf = pe.ConditionalWorkflow(name=name, condition_map=(
-        'func_motion_correct', 'outputnode.func_motion_correct'))
+    wf = pe.CachedWorkflow(name=name, cache_map=(
+        'func_motion_correct', 'func_motion_correct'))
 
     inputnode = pe.Node(niu.IdentityInterface(
         fields=['functional_scan', 'start_idx', 'stop_idx']), name='inputnode')
-    outputnode = pe.Node(niu.IdentityInterface(
-        fields=['func_motion_correct', 'coordinate_transformation']),
-        name='outputnode')
 
     func_get_idx = pe.Node(niu.Function(
         input_names=['in_files', 'start_idx', 'stop_idx'],
@@ -161,7 +158,7 @@ def func_motion_correct_workflow(name='QAPFunctionalHMC',
         (func_hmc, func_get_mean_motion, [('out_file', 'in_file')]),
         (func_reorient, func_hmc_A, [('out_file', 'in_file')]),
         (func_get_mean_motion, func_hmc_A, [('out_file', 'basefile')]),
-        (func_hmc_A, outputnode, [
+        (func_hmc_A, 'output',   [
             ('out_file', 'func_motion_correct'),
             ('oned_matrix_save', 'coordinate_transformation')])
     ])
@@ -186,13 +183,11 @@ def mean_functional_workflow(name='QAPMeanFunctional',
     ''' this version does NOT remove background noise '''
     from nipype.interfaces.afni import preprocess as afp
 
-    wf = pe.ConditionalWorkflow(name=name, condition_map=(
-        'mean_functional', 'outputnode.mean_functional'))
+    wf = pe.CachedWorkflow(name=name, cache_map=(
+        'mean_functional', 'mean_functional'))
 
     inputnode = pe.Node(niu.IdentityInterface(
         fields=['functional_scan', 'start_idx', 'stop_idx']), name='inputnode')
-    outputnode = pe.Node(niu.IdentityInterface(
-        fields=['mean_functional']), name='outputnode')
 
     cachenode = pe.Node(niu.IdentityInterface(
         fields=['func_motion_correct']), name='cachenode')
@@ -216,7 +211,7 @@ def mean_functional_workflow(name='QAPMeanFunctional',
     wf.connect([
         (hmcwf, func_mean_skullstrip, [
             ('outputnode.func_motion_correct', 'in_file')]),
-        (func_mean_skullstrip, outputnode, [('out_file', 'mean_functional')])
+        (func_mean_skullstrip, 'output',   [('out_file', 'mean_functional')])
     ])
     return wf
 
@@ -225,13 +220,11 @@ def functional_brain_mask_workflow(name='QAPFunctBrainMask', use_bet=False,
                                    slice_timing_correction=False):
     from nipype.interfaces.afni import preprocess as afp
 
-    wf = pe.ConditionalWorkflow(name=name, condition_map=(
-        'functional_brain_mask', 'outputnode.functional_brain_mask'))
+    wf = pe.CachedWorkflow(name=name, cache_map=(
+        'functional_brain_mask', 'functional_brain_mask'))
 
     inputnode = pe.Node(niu.IdentityInterface(
         fields=['functional_scan', 'start_idx', 'stop_idx']), name='inputnode')
-    outputnode = pe.Node(niu.IdentityInterface(
-        fields=['functional_brain_mask']), name='outputnode')
 
     cachenode = pe.Node(niu.IdentityInterface(
         fields=['func_motion_correct']), name='cachenode')
@@ -257,7 +250,7 @@ def functional_brain_mask_workflow(name='QAPFunctBrainMask', use_bet=False,
         wf.connect([
             (hmcwf, func_get_brain_mask, [
                 ('outputnode.func_motion_correct', 'in_file')]),
-            (func_get_brain_mask, outputnode, [
+            (func_get_brain_mask, 'output', [
                 ('out_file', 'functional_brain_mask')])
         ])
 
@@ -273,7 +266,7 @@ def functional_brain_mask_workflow(name='QAPFunctBrainMask', use_bet=False,
             (hmcwf, func_get_brain_mask, [
                 ('outputnode.func_motion_correct', 'in_file')]),
             (func_get_brain_mask, erode_one_voxel, [('mask_file', 'in_file')]),
-            (erode_one_voxel, outputnode, [
+            (erode_one_voxel, 'output', [
                 ('out_file', 'functional_brain_mask')])
         ])
 

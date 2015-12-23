@@ -51,14 +51,14 @@ def qap_anatomical_spatial_workflow(workflow, config, plot_mask=False):
         (arw, spatial,
             [('outputnode.anatomical_reorient', 'anatomical_reorient')]),
         (cache, arw,
-            [('anatomical_reorient', 'conditions.anatomical_reorient')])
+            [('anatomical_reorient', 'cachenode.anatomical_reorient')])
     ])
 
     asw = anatomical_skullstrip_workflow()
     workflow.connect([
         (arw, asw, [('outputnode.anatomical_reorient',
                      'inputnode.anatomical_reorient')]),
-        (cache, asw, [('anatomical_brain', 'conditions.anatomical_brain')]),
+        (cache, asw, [('anatomical_brain', 'cachenode.anatomical_brain')]),
         (asw, spatial,
             [('outputnode.anatomical_brain', 'anatomical_brain')])
     ])
@@ -69,7 +69,7 @@ def qap_anatomical_spatial_workflow(workflow, config, plot_mask=False):
                      'inputnode.anatomical_reorient')]),
         (asw, qmw, [('outputnode.anatomical_brain',
                      'inputnode.anatomical_brain')]),
-        (cache, qmw, [('head_mask_path', 'conditions.head_mask')]),
+        (cache, qmw, [('head_mask_path', 'cachenode.head_mask')]),
         (qmw, spatial,
             [('outputnode.head_mask', 'head_mask_path')])
     ])
@@ -79,9 +79,9 @@ def qap_anatomical_spatial_workflow(workflow, config, plot_mask=False):
         (asw, qsw, [('outputnode.anatomical_brain',
                      'inputnode.anatomical_brain')]),
         (cache, qsw, [
-            ('anatomical_gm_mask', 'conditions.anatomical_gm_mask'),
-            ('anatomical_wm_mask', 'conditions.anatomical_wm_mask'),
-            ('anatomical_csf_mask', 'conditions.anatomical_csf_mask')]),
+            ('anatomical_gm_mask', 'cachenode.anatomical_gm_mask'),
+            ('anatomical_wm_mask', 'cachenode.anatomical_wm_mask'),
+            ('anatomical_csf_mask', 'cachenode.anatomical_csf_mask')]),
         (qsw, spatial,
             [('outputnode.anatomical_gm_mask', 'anatomical_gm_mask')]),
         (qsw, spatial,
@@ -122,19 +122,18 @@ def anatomical_reorient_workflow(name='QAPAnatReorient'):
     """
     from nipype.interfaces.afni import preprocess as afp
 
-    wf = pe.ConditionalWorkflow(name=name, condition_map=(
-        'anatomical_reorient', 'outputnode.anatomical_reorient'))
+    wf = pe.CachedWorkflow(name=name, cache_map=(
+        'anatomical_reorient', 'anatomical_reorient'))
     inputnode = pe.Node(niu.IdentityInterface(fields=['anatomical_scan']),
                         name='inputnode')
-    outputnode = pe.Node(niu.IdentityInterface(fields=['anatomical_reorient']),
-                         name='outputnode')
+
     anat_deoblique = pe.Node(afp.Refit(deoblique=True), name='anat_deoblique')
     anat_reorient = pe.Node(afp.Resample(
         orientation='RPI', outputtype='NIFTI_GZ'), name='anat_reorient')
     wf.connect([
         (inputnode, anat_deoblique,     [('anatomical_scan', 'in_file')]),
         (anat_deoblique, anat_reorient, [('out_file', 'in_file')]),
-        (anat_reorient, outputnode,     [('out_file', 'anatomical_reorient')])
+        (anat_reorient, 'output',       [('out_file', 'anatomical_reorient')])
     ])
     return wf
 
@@ -143,13 +142,11 @@ def qap_mask_workflow(name='QAPMaskWorkflow', config={}):
     from nipype.interfaces.fsl.base import Info
     from utils import select_thresh, slice_head_mask
 
-    wf = pe.ConditionalWorkflow(name=name, condition_map=[
-        ('head_mask', 'outputnode.head_mask')])
+    wf = pe.CachedWorkflow(name=name, cache_map=[
+        ('head_mask', 'head_mask')])
 
     inputnode = pe.Node(niu.IdentityInterface(
         fields=['anatomical_reorient', 'anatomical_brain']), name='inputnode')
-    outputnode = pe.Node(niu.IdentityInterface(
-        fields=['head_mask']), name='outputnode')
 
     select_thresh = pe.Node(niu.Function(
         input_names=['input_skull'], output_names=['thresh_out'],
@@ -193,7 +190,7 @@ def qap_mask_workflow(name='QAPMaskWorkflow', config={}):
         (dilate_node, erode_node,        [('out_file', 'in_file')]),
         (erode_node, combine_masks,      [('out_file', 'in_file')]),
         (slice_head_mask, combine_masks, [('outfile_path', 'operand_file')]),
-        (combine_masks, outputnode,      [('out_file', 'head_mask')])
+        (combine_masks, 'output',        [('out_file', 'head_mask')])
     ])
     return wf
 
@@ -228,12 +225,11 @@ def flirt_anatomical_linear_registration(name='QAPflirtLReg', config={}):
 def anatomical_skullstrip_workflow(name='QAPSkullStripWorkflow'):
     from nipype.interfaces.afni import preprocess as afp
 
-    wf = pe.ConditionalWorkflow(name=name, condition_map=[
-        ('anatomical_brain', 'outputnode.anatomical_brain')])
+    wf = pe.CachedWorkflow(name=name, cache_map=[
+        ('anatomical_brain', 'anatomical_brain')])
     inputnode = pe.Node(niu.IdentityInterface(fields=['anatomical_reorient']),
                         name='inputnode')
-    outputnode = pe.Node(niu.IdentityInterface(fields=['anatomical_brain']),
-                         name='outputnode')
+
     sstrip = pe.Node(afp.SkullStrip(), name='anat_skullstrip')
     sstrip.inputs.outputtype = 'NIFTI_GZ'
 
@@ -244,21 +240,18 @@ def anatomical_skullstrip_workflow(name='QAPSkullStripWorkflow'):
         (inputnode, sstrip,           [('anatomical_reorient', 'in_file')]),
         (inputnode, sstrip_orig_vol,  [('anatomical_reorient', 'in_file_a')]),
         (sstrip, sstrip_orig_vol,     [('out_file', 'in_file_b')]),
-        (sstrip_orig_vol, outputnode, [('out_file', 'anatomical_brain')])
+        (sstrip_orig_vol, 'output',   [('out_file', 'anatomical_brain')])
     ])
     return wf
 
 
 def segmentation_workflow(name='QAPSegmentationWorkflow'):
-    wf = pe.ConditionalWorkflow(name=name, condition_map=[
-        ('anatomical_%s_mask' % k, 'outputnode.anatomical_%s_mask' % k)
+    wf = pe.CachedWorkflow(name=name, cache_map=[
+        ('anatomical_%s_mask' % k, 'anatomical_%s_mask' % k)
         for k in ['gm', 'wm', 'csf']])
 
     inputnode = pe.Node(niu.IdentityInterface(
         fields=['anatomical_brain']), name='inputnode')
-    outputnode = pe.Node(niu.IdentityInterface(
-        fields=['anatomical_gm_mask', 'anatomical_wm_mask',
-                'anatomical_csf_mask']), name='outputnode')
 
     segment = pe.Node(fsl.FAST(
         img_type=1, segments=True, probability_maps=True,
@@ -274,7 +267,7 @@ def segmentation_workflow(name='QAPSegmentationWorkflow'):
 
         wf.connect([
             (segment, pick_seg, [('tissue_class_files', 'probability_maps')]),
-            (pick_seg, outputnode, [('filename', 'anatomical_%s_mask' % seg)])
+            (pick_seg, 'output', [('filename', 'anatomical_%s_mask' % seg)])
         ])
     return wf
 
