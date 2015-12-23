@@ -363,7 +363,7 @@ def _run_workflow(args):
     if site_name:
         config["site_name"] = site_name
 
-    workflow = pe.Workflow(name=scan_id)
+    workflow = pe.Workflow(name=scan_id, control=False)
     workflow.base_dir = op.join(config["working_directory"], sub_id,
                                 session_id)
 
