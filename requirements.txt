@@ -1,3 +1,3 @@
 nibabel
 nitime
--U -e git+https://github.com/oesteban/nipype.git@enh/ControlNodes
+-e git+https://github.com/oesteban/nipype.git@enh/ControlNodes#egg=nipype
