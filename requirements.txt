@@ -1,4 +1,4 @@
 nibabel
 nitime
-yaml
+PyYAML
 -e git+https://github.com/oesteban/nipype.git@enh/ControlNodes#egg=nipype
