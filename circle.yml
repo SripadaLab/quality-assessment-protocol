@@ -15,9 +15,9 @@ test:
   override:
     # Test new qcp smart script, first only one case.
     - echo "sub-01" > inclusion_file && python scripts/qap_bids_data_sublist_generator.py --include inclusion_file ~/examples/ds003_downsampled/ ~/bids_subjects_sub-01.yml
-    - FSLDIR=~/fsl/ PATH=~/afni:~/fsl/bin:$PATH LD_LIBRARY_PATH=~/fsl/lib FSLOUTPUTTYPE="NIFTI_GZ" python scripts/qcp.py --sublist bids_subjects_sub-01.yml configs/qap_config_ds003.yml
+    - FSLDIR=~/fsl/ PATH=~/afni:~/fsl/bin:$PATH LD_LIBRARY_PATH=~/fsl/lib FSLOUTPUTTYPE="NIFTI_GZ" python scripts/qcp.py --sublist ~/bids_subjects_sub-01.yml configs/qap_config_ds003.yml
     - python scripts/qap_bids_data_sublist_generator.py ~/examples/ds003_downsampled/ ~/bids_subjects.yml
-    - FSLDIR=~/fsl/ PATH=~/afni:~/fsl/bin:$PATH LD_LIBRARY_PATH=~/fsl/lib FSLOUTPUTTYPE="NIFTI_GZ" python scripts/qcp.py --sublist bids_subjects.yml configs/qap_config_ds003_ms.yml
+    - FSLDIR=~/fsl/ PATH=~/afni:~/fsl/bin:$PATH LD_LIBRARY_PATH=~/fsl/lib FSLOUTPUTTYPE="NIFTI_GZ" python scripts/qcp.py --sublist ~/bids_subjects.yml configs/qap_config_ds003_ms.yml
     # First three tests only on one subject
     - echo "sub-01" > inclusion_file && python scripts/qap_bids_data_sublist_generator.py -t functional --include inclusion_file ~/examples/ds003_downsampled/ ~/bids_func_sub-01.yml
     - FSLDIR=~/fsl/ PATH=~/afni:~/fsl/bin:$PATH LD_LIBRARY_PATH=~/fsl/lib FSLOUTPUTTYPE="NIFTI_GZ" python scripts/qap_functional_spatial.py --sublist ~/bids_func_sub-01.yml configs/qap_config_ds003.yml
