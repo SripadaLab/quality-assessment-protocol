@@ -243,24 +243,20 @@ class QAProtocolCLI:
             results = self._run_cloud(run_name)
 
         # Report errors
-        formatted = []
         for r in results:
-            if 'traceback' in r.keys():
-                formatted.append('subject_id=%s, session=%s, scan=%s' %
-                                 (r['id'], r['session'], r['scan']))
-                formatted += [''.join(r['traceback']) + '\n']
-
-        if formatted:
-            with open(op.join(config["output_directory"], 'workflows.err'),
-                      'w+') as f:
-                f.write('\n'.join(formatted))
+            if 'traceback' in r:
+                logger.warn('Workflow failed: subject_id=%s, session=%s, '
+                            'scan=%s' % (r['id'], r['session'], r['scan']))
+                logger.error(''.join(r['traceback']))
 
         # PDF reporting
         if write_report:
             from glob import glob
             from qap.viz.reports import workflow_report
-            logger.info('Writing PDF reports')
             out_files = glob(op.join(config['output_directory'], 'qap_*.csv'))
+
+            if out_files:
+                logger.info('Writing PDF reports')
 
             for in_csv in out_files:
                 qap_type, _ = op.splitext(op.basename(in_csv))
@@ -390,7 +386,7 @@ def _run_workflow(args):
     if 'qap_' + qap_type not in resource_pool.keys():
         from qap.workflows import wrappers as qw
         wf_builder = getattr(qw, 'qap_' + qap_type + '_workflow')
-        workflow, resource_pool = wf_builder(workflow, resource_pool, config)
+        workflow, resource_pool = wf_builder(resource_pool, config)
 
     rt = {'id': sub_id, 'session': session_id, 'scan': scan_id,
           'status': 'started'}

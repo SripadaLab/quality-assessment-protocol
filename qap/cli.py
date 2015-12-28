@@ -245,16 +245,11 @@ class QAProtocolCLI:
             results = self._run_cloud(run_name)
 
         # Report errors
-        formatted = []
         for r in results:
-            formatted.append('subject_id=%s, session=%s, scan=%s' %
-                             (r['id'], r['session'], r['scan']))
-            formatted.append('Traceback:')
-            formatted.append('%s\n\n' % r['traceback'])
-
-        with open(op.join(config["output_directory"], 'workflows.err'),
-                  'w+') as f:
-            f.write('\n'.join(formatted))
+            if 'traceback' in r:
+                logger.warn('Workflow failed: subject_id=%s, session=%s, '
+                            'scan=%s' % (r['id'], r['session'], r['scan']))
+                logger.error(''.join(r['traceback']))
 
         # PDF reporting
         if write_report:
@@ -410,7 +405,7 @@ def _run_workflow(args):
                 shutil.rmtree(work_dir)
         except:
             logger.warn("Couldn\'t remove the working directory!")
-            
+
     pipeline_end_stamp = strftime("%Y-%m-%d_%H:%M:%S")
     pipeline_end_time = time.time()
     logger.info("Elapsed time (minutes) since last start: %s"

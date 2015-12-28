@@ -16,18 +16,18 @@ from nipype import logging
 logger = logging.getLogger('workflow')
 
 
-def qap_anatomical_spatial_workflow(workflow, config, plot_mask=False):
+def qap_anatomical_spatial_workflow(config, plot_mask=False):
     import nipype.algorithms.misc as nam
     from utils import qap_anatomical_spatial
     from qap.viz.interfaces import PlotMosaic
 
     output_dir = op.join(
-        config['output_directory'], config['run_name'],  config['sub_id'],
+        config['output_directory'], config['run_name'],  config['subject_id'],
         config['session_id'], config['scan_id'])
 
     settings = ['subject_id', 'session_id', 'scan_id', 'site_name']
 
-    workflow = pe.Workflow(name=config['scan_id'])
+    workflow = pe.Workflow(name=config['scan_id'], control=False)
     workflow.base_dir = op.join(config['working_directory'],
                                 config['subject_id'],
                                 config['session_id'])

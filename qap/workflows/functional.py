@@ -25,7 +25,7 @@ def qap_functional_spatial_workflow(config, plot_mask=False):
     settings = ['subject_id', 'session_id', 'scan_id', 'site_name',
                 'direction']
 
-    workflow = pe.Workflow(name=config['scan_id'])
+    workflow = pe.Workflow(name=config['scan_id'], control=False)
     workflow.base_dir = op.join(config['working_directory'],
                                 config['subject_id'],
                                 config['session_id'])
@@ -117,7 +117,7 @@ def qap_functional_spatial_workflow(config, plot_mask=False):
     return workflow
 
 
-def qap_functional_temporal_workflow(workflow, config, plot_mask=False):
+def qap_functional_temporal_workflow(config, plot_mask=False):
     import nipype.algorithms.misc as nam
     from utils import qap_functional_temporal
     from ..temporal_qc import fd_jenkinson
@@ -126,7 +126,7 @@ def qap_functional_temporal_workflow(workflow, config, plot_mask=False):
     settings = ['subject_id', 'session_id', 'scan_id', 'site_name',
                 'direction']
 
-    workflow = pe.Workflow(name=config['scan_id'])
+    workflow = pe.Workflow(name=config['scan_id'], control=False)
     workflow.base_dir = op.join(config['working_directory'],
                                 config['subject_id'],
                                 config['session_id'])
