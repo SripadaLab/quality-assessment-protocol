@@ -4,10 +4,10 @@
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 
 
-def qap_anatomical_spatial_workflow(workflow, resource_pool, config,
+def qap_anatomical_spatial_workflow(resource_pool, config,
                                     plot_mask=False):
     from qap.workflows.anatomical import qap_anatomical_spatial_workflow
-    wf = qap_anatomical_spatial_workflow(workflow, config, plot_mask)
+    wf = qap_anatomical_spatial_workflow(config, plot_mask)
 
     # Connect principal input
     if 'anatomical_scan' in resource_pool.keys():
@@ -45,12 +45,11 @@ def qap_anatomical_spatial_workflow(workflow, resource_pool, config,
     return wf, resource_pool
 
 
-def qap_functional_spatial_workflow(workflow, resource_pool, config,
+def qap_functional_spatial_workflow(resource_pool, config,
                                     plot_mask=False):
-    from qap.workflows.functional_spatial import \
-        qap_functional_spatial_workflow
+    from qap.workflows.functional import qap_functional_spatial_workflow
 
-    wf = qap_functional_spatial_workflow(workflow, config, plot_mask)
+    wf = qap_functional_spatial_workflow(config, plot_mask)
 
     # Connect principal input
     if 'functional_scan' in resource_pool.keys():
@@ -63,17 +62,6 @@ def qap_functional_spatial_workflow(workflow, resource_pool, config,
         wf.inputs.cachenode.functional_brain_mask = \
             resource_pool['functional_brain_mask']
 
-    # Subject infos
-    wf.inputs.inputnode.subject_id = config['subject_id']
-    wf.inputs.inputnode.session_id = config['session_id']
-    wf.inputs.inputnode.scan_id = config['scan_id']
-    wf.inputs.inputnode.direction = config.get('ghost_direction', 'y')
-    wf.inputs.inputnode.start_idx = config.get('start_idx', 0)
-    wf.inputs.inputnode.stop_idx = config.get('stop_idx', None)
-
-    if 'site_name' in config.keys():
-        wf.inputs.inputnode.site_name = config['site_name']
-
     # Maintain backwards compatibility with resource_pool
     resource_pool['qap_functional_spatial'] = (
         wf.get_node('qap_functional_spatial_to_csv'), 'csv_file')
@@ -85,27 +73,15 @@ def qap_functional_spatial_workflow(workflow, resource_pool, config,
     return wf, resource_pool
 
 
-def qap_functional_temporal_workflow(workflow, resource_pool, config,
+def qap_functional_temporal_workflow(resource_pool, config,
                                      plot_mask=False):
-    from qap.workflows.functional_temporal import \
-        qap_functional_temporal_workflow
+    from qap.workflows.functional import qap_functional_temporal_workflow
 
-    wf = qap_functional_temporal_workflow(workflow, config, plot_mask)
+    wf = qap_functional_temporal_workflow(config, plot_mask)
 
     # Connect principal input
     if 'functional_scan' in resource_pool.keys():
         wf.inputs.inputnode.functional_scan = resource_pool['functional_scan']
-
-    # Subject infos
-    wf.inputs.inputnode.subject_id = config['subject_id']
-    wf.inputs.inputnode.session_id = config['session_id']
-    wf.inputs.inputnode.scan_id = config['scan_id']
-    wf.inputs.inputnode.direction = config.get('ghost_direction', 'y')
-    wf.inputs.inputnode.start_idx = config.get('start_idx', 0)
-    wf.inputs.inputnode.stop_idx = config.get('stop_idx', None)
-
-    if 'site_name' in config.keys():
-        wf.inputs.inputnode.site_name = config['site_name']
 
     # Connect possibly cached inputs
     if 'functional_brain_mask' in resource_pool.keys():

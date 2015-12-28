@@ -347,14 +347,6 @@ def _run_workflow(args):
     if site_name:
         config["site_name"] = site_name
 
-    workflow = pe.Workflow(name=scan_id)
-    workflow.base_dir = op.join(config["working_directory"], sub_id,
-                                session_id)
-
-    # set up crash directory
-    workflow.config['execution'] = \
-        {'crashdump_dir': config["output_directory"]}
-
     # update that resource pool with what's already in the output directory
     for resource in os.listdir(output_dir):
         if (op.isdir(op.join(output_dir, resource)) and
@@ -383,65 +375,30 @@ def _run_workflow(args):
     if 'qap_' + qap_type not in resource_pool.keys():
         from qap.workflows import wrappers as qw
         wf_builder = getattr(qw, 'qap_' + qap_type + '_workflow')
-        workflow, resource_pool = wf_builder(workflow, resource_pool, config)
-
-    # set up the datasinks
-    new_outputs = 0
-
-    out_list = ['qap_' + qap_type]
-    if keep_outputs:
-        out_list = resource_pool.keys()
-
-    # Save reports to out_dir if necessary
-    if config.get('write_report', False):
-        out_list += ['qap_mosaic']
-
-        # The functional temporal also has an FD plot
-        if 'functional_temporal' in qap_type:
-            out_list += ['qap_fd']
-
-    for output in out_list:
-        # we use a check for len()==2 here to select those items in the
-        # resource pool which are tuples of (node, node_output), instead
-        # of the items which are straight paths to files
-
-        # resource pool items which are in the tuple format are the
-        # outputs that have been created in this workflow because they
-        # were not present in the subject list YML (the starting resource
-        # pool) and had to be generated
-        if len(resource_pool[output]) == 2:
-            ds = pe.Node(nio.DataSink(), name='datasink_%s' % output)
-            ds.inputs.base_directory = output_dir
-            node, out_file = resource_pool[output]
-            workflow.connect(node, out_file, ds, output)
-            new_outputs += 1
+        workflow, resource_pool = wf_builder(resource_pool, config)
 
     rt = {'id': sub_id, 'session': session_id, 'scan': scan_id,
           'status': 'started'}
+
     # run the pipeline (if there is anything to do)
-    if new_outputs > 0:
-        if config.get('write_graph', False):
-            workflow.write_graph(
-                dotfilename=op.join(output_dir, run_name + ".dot"),
-                simple_form=False)
+    if config.get('write_graph', False):
+        workflow.write_graph(
+            dotfilename=op.join(output_dir, run_name + ".dot"),
+            simple_form=False)
 
-        nc_per_subject = config.get('num_cores_per_subject', 1)
-        runargs = {'plugin': 'Linear', 'plugin_args': {}}
-        if nc_per_subject > 1:
-            runargs['plugin'] = 'MultiProc'
-            runargs['plugin_args'] = {'n_procs': nc_per_subject}
-
-        try:
-            workflow.run(**runargs)
-            rt['status'] = 'finished'
-        except Exception as e:
-            # ... however this is run inside a pool.map: do not raise Exception
-            etype, evalue, etrace = sys.exc_info()
-            tb = format_exception(etype, evalue, etrace)
-            rt.update({'status': 'failed', 'msg': '%s' % e, 'traceback': tb})
-    else:
-        rt['status'] = 'cached'
-        logger.info("\nEverything is already done for subject %s." % sub_id)
+    nc_per_subject = config.get('num_cores_per_subject', 1)
+    runargs = {'plugin': 'Linear', 'plugin_args': {}}
+    if nc_per_subject > 1:
+        runargs['plugin'] = 'MultiProc'
+        runargs['plugin_args'] = {'n_procs': nc_per_subject}
+    try:
+        workflow.run(**runargs)
+        rt['status'] = 'finished'
+    except Exception as e:
+        # ... however this is run inside a pool.map: do not raise Exception
+        etype, evalue, etrace = sys.exc_info()
+        tb = format_exception(etype, evalue, etrace)
+        rt.update({'status': 'failed', 'msg': '%s' % e, 'traceback': tb})
 
     # Remove working directory when done
     if not keep_outputs:
@@ -453,8 +410,7 @@ def _run_workflow(args):
                 shutil.rmtree(work_dir)
         except:
             logger.warn("Couldn\'t remove the working directory!")
-            pass
-
+            
     pipeline_end_stamp = strftime("%Y-%m-%d_%H:%M:%S")
     pipeline_end_time = time.time()
     logger.info("Elapsed time (minutes) since last start: %s"

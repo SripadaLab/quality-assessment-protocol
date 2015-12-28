@@ -21,7 +21,21 @@ def qap_anatomical_spatial_workflow(workflow, config, plot_mask=False):
     from utils import qap_anatomical_spatial
     from qap.viz.interfaces import PlotMosaic
 
+    output_dir = op.join(
+        config['output_directory'], config['run_name'],  config['sub_id'],
+        config['session_id'], config['scan_id'])
+
     settings = ['subject_id', 'session_id', 'scan_id', 'site_name']
+
+    workflow = pe.Workflow(name=config['scan_id'])
+    workflow.base_dir = op.join(config['working_directory'],
+                                config['subject_id'],
+                                config['session_id'])
+
+    # set up crash directory
+    workflow.config['execution'] = \
+        {'crashdump_dir': config['output_directory']}
+
     inputnode = pe.Node(niu.IdentityInterface(
         fields=['anatomical_scan']+settings), name='inputnode')
 
@@ -90,6 +104,17 @@ def qap_anatomical_spatial_workflow(workflow, config, plot_mask=False):
             [('outputnode.anatomical_csf_mask', 'anatomical_csf_mask')])
     ])
 
+    # Write results that may be cached
+    ds0 = pe.Node(nio.DataSink(base_directory=output_dir), name='ds_reorient')
+    workflow.connect(arw, 'outputnode.anatomical_reorient',
+                     ds0, 'anatomical_reorient')
+    ds1 = pe.Node(nio.DataSink(base_directory=output_dir), name='ds_brain')
+    workflow.connect(asw, 'outputnode.anatomical_brain',
+                     ds1, 'anatomical_brain')
+    ds2 = pe.Node(nio.DataSink(base_directory=output_dir), name='ds_brainmask')
+    workflow.connect(qmw, 'outputnode.head_mask',
+                     ds2, 'anatomical_brainmask')
+
     # Write CSV row
     out_csv = op.join(config['output_directory'], 'qap_anatomical_spatial.csv')
     spatial_to_csv = pe.Node(
@@ -112,6 +137,11 @@ def qap_anatomical_spatial_workflow(workflow, config, plot_mask=False):
         if plot_mask:
             workflow.connect(qmw, 'outputnode.head_mask_path',
                              plot, 'in_mask')
+
+        dsplot = pe.Node(nio.DataSink(base_directory=output_dir),
+                         name='ds_plot')
+        workflow.connect(plot, 'out_file',
+                         dsplot, 'plot_mosaic')
 
     return workflow
 

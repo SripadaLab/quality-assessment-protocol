@@ -17,16 +17,37 @@ from nipype import logging
 logger = logging.getLogger('workflow')
 
 
-def qap_functional_spatial_workflow(workflow, config, plot_mask=False):
+def qap_functional_spatial_workflow(config, plot_mask=False):
     import nipype.algorithms.misc as nam
     from utils import qap_functional_spatial
     from qap.viz.interfaces import PlotMosaic
 
     settings = ['subject_id', 'session_id', 'scan_id', 'site_name',
                 'direction']
+
+    workflow = pe.Workflow(name=config['scan_id'])
+    workflow.base_dir = op.join(config['working_directory'],
+                                config['subject_id'],
+                                config['session_id'])
+
+    # set up crash directory
+    workflow.config['execution'] = \
+        {'crashdump_dir': config["output_directory"]}
+
     inputnode = pe.Node(niu.IdentityInterface(
         fields=['functional_scan', 'start_idx', 'stop_idx']+settings),
         name='inputnode')
+
+    # Subject infos
+    inputnode.inputs.subject_id = config['subject_id']
+    inputnode.inputs.session_id = config['session_id']
+    inputnode.inputs.scan_id = config['scan_id']
+    inputnode.inputs.direction = config.get('ghost_direction', 'y')
+    inputnode.inputs.start_idx = config.get('start_idx', 0)
+    inputnode.inputs.stop_idx = config.get('stop_idx', None)
+
+    if 'site_name' in config.keys():
+        inputnode.inputs.site_name = config['site_name']
 
     # resource pool should have:
     cfields = ['mean_functional', 'func_motion_correct',
@@ -104,9 +125,30 @@ def qap_functional_temporal_workflow(workflow, config, plot_mask=False):
 
     settings = ['subject_id', 'session_id', 'scan_id', 'site_name',
                 'direction']
+
+    workflow = pe.Workflow(name=config['scan_id'])
+    workflow.base_dir = op.join(config['working_directory'],
+                                config['subject_id'],
+                                config['session_id'])
+
+    # set up crash directory
+    workflow.config['execution'] = \
+        {'crashdump_dir': config["output_directory"]}
+
     inputnode = pe.Node(niu.IdentityInterface(
         fields=['functional_scan', 'start_idx', 'stop_idx']+settings),
         name='inputnode')
+
+    # Subject infos
+    inputnode.inputs.subject_id = config['subject_id']
+    inputnode.inputs.session_id = config['session_id']
+    inputnode.inputs.scan_id = config['scan_id']
+    inputnode.inputs.direction = config.get('ghost_direction', 'y')
+    inputnode.inputs.start_idx = config.get('start_idx', 0)
+    inputnode.inputs.stop_idx = config.get('stop_idx', None)
+
+    if 'site_name' in config.keys():
+        inputnode.inputs.site_name = config['site_name']
 
     # resource pool should have:
     cfields = ['func_motion_correct', 'functional_brain_mask',
