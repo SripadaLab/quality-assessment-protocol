@@ -19,6 +19,12 @@ def qap_functional_spatial_workflow(workflow, resource_pool, config,
         workflow, resource_pool, config, plot_mask)
 
 
+def qap_functional_temporal_workflow(workflow, resource_pool, config,
+                                     plot_mask=False):
+    return qapw.qap_functional_temporal_workflow(
+        workflow, resource_pool, config, plot_mask)
+
+
 def qap_functional_temporal_workflow(workflow, resource_pool, config):
 
     # resource pool should have:

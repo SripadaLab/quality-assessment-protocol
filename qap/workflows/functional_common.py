@@ -10,88 +10,66 @@ import sys
 import nipype.interfaces.io as nio
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as niu
+from nipype.interfaces.afni import preprocess as afp
 
 from nipype import logging
 logger = logging.getLogger('workflow')
 
 
-def qap_functional_spatial_workflow(workflow, config, plot_mask=False):
-    import nipype.algorithms.misc as nam
-    from utils import qap_functional_spatial
-    from qap.viz.interfaces import PlotMosaic
+def functional_brain_mask_workflow(name='QAPFunctBrainMask', use_bet=False,
+                                   slice_timing_correction=False):
 
-    settings = ['subject_id', 'session_id', 'scan_id', 'site_name',
-                'direction']
+    wf = pe.CachedWorkflow(name=name, cache_map=(
+        'functional_brain_mask', 'functional_brain_mask'))
+
     inputnode = pe.Node(niu.IdentityInterface(
-        fields=['functional_scan', 'start_idx', 'stop_idx']+settings),
-        name='inputnode')
+        fields=['functional_scan', 'start_idx', 'stop_idx']), name='inputnode')
 
-    # resource pool should have:
-    cfields = ['mean_functional', 'func_motion_correct',
-               'functional_brain_mask']
-    cache = pe.Node(niu.IdentityInterface(fields=cfields), name='cachenode')
+    cachenode = pe.Node(niu.IdentityInterface(
+        fields=['func_motion_correct']), name='cachenode')
 
-    spatial_epi = pe.Node(niu.Function(
-        input_names=['mean_epi', 'func_brain_mask']+settings,
-        output_names=['qc'], function=qap_functional_spatial),
-        name='qap_functional_spatial')
-
-    workflow.connect([(inputnode, spatial_epi, [(k, k) for k in settings])])
-
-    # mean_functional_workflow
-    mfw = mean_functional_workflow(
-        slice_timing_correction=config.get('slice_timing_correction', False))
-    workflow.connect([
-        (inputnode, mfw, [
+    # This workflow is run twice
+    # https://github.com/preprocessed-connectomes-project/quality-assessment-protocol/issues/10)
+    hmcwf = func_motion_correct_workflow(
+        slice_timing_correction=slice_timing_correction)
+    wf.connect([
+        (inputnode, hmcwf, [
             ('functional_scan', 'inputnode.functional_scan'),
             ('start_idx', 'inputnode.start_idx'),
             ('stop_idx', 'inputnode.stop_idx')]),
-        (cache, mfw, [
-            ('mean_functional', 'conditions.mean_functional'),
-            ('func_motion_correct', 'cachenode.func_motion_correct')]),
-        (mfw, spatial_epi,
-            [('outputnode.mean_functional', 'mean_epi')]),
+        (cachenode, hmcwf, [(
+            ('func_motion_correct', 'conditions.func_motion_correct'))])
     ])
 
-    # functional_brain_mask_workflow
-    bmw = functional_brain_mask_workflow(
-        use_bet=config.get('use_bet', False),
-        slice_timing_correction=config.get('slice_timing_correction', False))
-    workflow.connect([
-        (inputnode, bmw, [
-            ('functional_scan', 'inputnode.functional_scan'),
-            ('start_idx', 'inputnode.start_idx'),
-            ('stop_idx', 'inputnode.stop_idx')]),
-        (cache, bmw, [
-            ('functional_brain_mask', 'conditions.functional_brain_mask')]),
-        (bmw, spatial_epi, [
-            ('outputnode.functional_brain_mask', 'func_brain_mask')])
-    ])
+    if not use_bet:
+        func_get_brain_mask = pe.Node(afp.Automask(
+            outputtype='NIFTI_GZ'), name='func_get_brain_mask')
 
-    # Write CSV row
-    out_csv = op.join(config['output_directory'], 'qap_functional_spatial.csv')
-    to_csv = pe.Node(
-        nam.AddCSVRow(in_file=out_csv), name='qap_functional_spatial_to_csv')
-    workflow.connect(spatial_epi, 'qc', to_csv, '_outputs')
+        # Connect brain mask extraction
+        wf.connect([
+            (hmcwf, func_get_brain_mask, [
+                ('outputnode.func_motion_correct', 'in_file')]),
+            (func_get_brain_mask, 'output', [
+                ('out_file', 'functional_brain_mask')])
+        ])
 
-    # Append plot generation
-    if config.get('write_report', False):
-        plot = pe.Node(PlotMosaic(), name='plot_mosaic')
-        plot.inputs.subject = config['subject_id']
+    else:
+        from nipype.interfaces.fsl import BET, ErodeImage
+        func_get_brain_mask = pe.Node(BET(
+            mask=True, functional=True), name='func_get_brain_mask_BET')
+        erode_one_voxel = pe.Node(ErodeImage(
+            kernel_shape='box', kernel_size=1.0), name='erode_one_voxel')
 
-        metadata = [config['session_id'], config['scan_id']]
-        if 'site_name' in config.keys():
-            metadata.append(config['site_name'])
+        # Connect brain mask extraction
+        wf.connect([
+            (hmcwf, func_get_brain_mask, [
+                ('outputnode.func_motion_correct', 'in_file')]),
+            (func_get_brain_mask, erode_one_voxel, [('mask_file', 'in_file')]),
+            (erode_one_voxel, 'output', [
+                ('out_file', 'functional_brain_mask')])
+        ])
 
-        plot.inputs.metadata = metadata
-        plot.inputs.title = 'Mean EPI'
-        workflow.connect(mfw, 'outputnode.mean_functional',
-                         plot, 'in_file')
-        if plot_mask:
-            workflow.connect(bmw, 'outputnode.functional_brain_mask',
-                             plot, 'in_mask')
-
-    return workflow
+    return wf
 
 
 def func_motion_correct_workflow(name='QAPFunctionalHMC',
@@ -99,7 +77,6 @@ def func_motion_correct_workflow(name='QAPFunctionalHMC',
     """
     A head motion correction (HMC) workflow for functional scans
     """
-    from nipype.interfaces.afni import preprocess as afp
 
     def _getidx(in_files, start_idx, stop_idx):
         from nibabel import load
@@ -181,7 +158,6 @@ def func_motion_correct_workflow(name='QAPFunctionalHMC',
 def mean_functional_workflow(name='QAPMeanFunctional',
                              slice_timing_correction=False):
     ''' this version does NOT remove background noise '''
-    from nipype.interfaces.afni import preprocess as afp
 
     wf = pe.CachedWorkflow(name=name, cache_map=(
         'mean_functional', 'mean_functional'))
@@ -213,61 +189,4 @@ def mean_functional_workflow(name='QAPMeanFunctional',
             ('outputnode.func_motion_correct', 'in_file')]),
         (func_mean_skullstrip, 'output',   [('out_file', 'mean_functional')])
     ])
-    return wf
-
-
-def functional_brain_mask_workflow(name='QAPFunctBrainMask', use_bet=False,
-                                   slice_timing_correction=False):
-    from nipype.interfaces.afni import preprocess as afp
-
-    wf = pe.CachedWorkflow(name=name, cache_map=(
-        'functional_brain_mask', 'functional_brain_mask'))
-
-    inputnode = pe.Node(niu.IdentityInterface(
-        fields=['functional_scan', 'start_idx', 'stop_idx']), name='inputnode')
-
-    cachenode = pe.Node(niu.IdentityInterface(
-        fields=['func_motion_correct']), name='cachenode')
-
-    # This workflow is run twice
-    # https://github.com/preprocessed-connectomes-project/quality-assessment-protocol/issues/10)
-    hmcwf = func_motion_correct_workflow(
-        slice_timing_correction=slice_timing_correction)
-    wf.connect([
-        (inputnode, hmcwf, [
-            ('functional_scan', 'inputnode.functional_scan'),
-            ('start_idx', 'inputnode.start_idx'),
-            ('stop_idx', 'inputnode.stop_idx')]),
-        (cachenode, hmcwf, [(
-            ('func_motion_correct', 'conditions.func_motion_correct'))])
-    ])
-
-    if not use_bet:
-        func_get_brain_mask = pe.Node(afp.Automask(
-            outputtype='NIFTI_GZ'), name='func_get_brain_mask')
-
-        # Connect brain mask extraction
-        wf.connect([
-            (hmcwf, func_get_brain_mask, [
-                ('outputnode.func_motion_correct', 'in_file')]),
-            (func_get_brain_mask, 'output', [
-                ('out_file', 'functional_brain_mask')])
-        ])
-
-    else:
-        from nipype.interfaces.fsl import BET, ErodeImage
-        func_get_brain_mask = pe.Node(BET(
-            mask=True, functional=True), name='func_get_brain_mask_BET')
-        erode_one_voxel = pe.Node(ErodeImage(
-            kernel_shape='box', kernel_size=1.0), name='erode_one_voxel')
-
-        # Connect brain mask extraction
-        wf.connect([
-            (hmcwf, func_get_brain_mask, [
-                ('outputnode.func_motion_correct', 'in_file')]),
-            (func_get_brain_mask, erode_one_voxel, [('mask_file', 'in_file')]),
-            (erode_one_voxel, 'output', [
-                ('out_file', 'functional_brain_mask')])
-        ])
-
     return wf
