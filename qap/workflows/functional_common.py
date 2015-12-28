@@ -38,7 +38,7 @@ def functional_brain_mask_workflow(name='QAPFunctBrainMask', use_bet=False,
             ('start_idx', 'inputnode.start_idx'),
             ('stop_idx', 'inputnode.stop_idx')]),
         (cachenode, hmcwf, [(
-            ('func_motion_correct', 'conditions.func_motion_correct'))])
+            ('func_motion_correct', 'cachenode.func_motion_correct'))])
     ])
 
     if not use_bet:
@@ -178,7 +178,7 @@ def mean_functional_workflow(name='QAPMeanFunctional',
             ('start_idx', 'inputnode.start_idx'),
             ('stop_idx', 'inputnode.stop_idx')]),
         (cachenode, hmcwf, [(
-            ('func_motion_correct', 'conditions.func_motion_correct'))])
+            ('func_motion_correct', 'cachenode.func_motion_correct'))])
     ])
 
     func_mean_skullstrip = pe.Node(afp.TStat(
