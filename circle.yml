@@ -13,9 +13,9 @@ dependencies:
     - if [[ ! -d ~/examples/ds003_downsampled ]]; then wget "https://googledrive.com/host/0B2JWN60ZLkgkMEw4bW5VUUpSdFU/ds003_downsampled.tar"; mkdir -p ~/examples; tar xvf ds003_downsampled.tar -C ~/examples; fi
 machine:
   environment:
-    PATH: ~/afni:~/fsl/bin:${PATH}
-    FSLDIR: ~/fsl/
-    LD_LIBRARY_PATH: ~/fsl/lib:${LD_LIBRARY_PATH}
+    PATH: ${HOME}/afni:${HOME}/fsl/bin:${PATH}
+    FSLDIR: ${HOME}/fsl
+    LD_LIBRARY_PATH: ${HOME}/fsl/lib:${LD_LIBRARY_PATH}
     FSLOUTPUTTYPE: NIFTI_GZ
 test:
   override:
