@@ -23,7 +23,7 @@ test:
   override:
     # Test new qcp smart script, first only one case.
     - echo "sub-01" > inclusion_file && python scripts/qap_bids_data_sublist_generator.py --include inclusion_file ${HOME}/examples/ds003_downsampled/ ${HOME}/bids_subjects_sub-01.yml
-    - python scripts/qcp.py --sublist ${HOME}/bids_subjects_sub-01.yml configs/qap_config_ds003.yml
+    - python scripts/qcp.py --sublist ${HOME}/bids_subjects_sub-01.yml configs/qap_config_ds003.yml:
         environment:
           PATH: ${HOME}/afni:${HOME}/fsl/bin:${PATH}
           FSLDIR: ${HOME}/fsl
