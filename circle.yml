@@ -1,9 +1,9 @@
 dependencies:
   cache_directories:
-    - "${HOME}/examples/"
-    - "${HOME}/afni/"
-    - "${HOME}/fsl/"
-    - "${HOME}/downloads/"
+    - ${HOME}/examples/
+    - ${HOME}/afni/
+    - ${HOME}/fsl/
+    - ${HOME}/downloads/
   override:
     - pip install --upgrade pip
     - pip install numpy
