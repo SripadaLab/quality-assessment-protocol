@@ -1,14 +1,3 @@
-dependencies:
-  cache_directories:
-    - ${HOME}/examples/
-    - ${HOME}/afni/
-    - ${HOME}/fsl/
-    - ${HOME}/downloads/
-  override:
-    - pip install --upgrade pip
-    - pip install numpy
-    - pip install -r requirements.txt
-    - pip install -e .
 machine:
   pre:
     - mkdir -p ${HOME}/downloads
@@ -22,6 +11,17 @@ machine:
     FSLDIR: ${HOME}/fsl
     LD_LIBRARY_PATH: ${HOME}/fsl/lib:${LD_LIBRARY_PATH}
     FSLOUTPUTTYPE: NIFTI_GZ
+dependencies:
+  cache_directories:
+    - $HOME/examples/
+    - $HOME/afni/
+    - $HOME/fsl/
+    - $HOME/downloads/
+  override:
+    - pip install --upgrade pip
+    - pip install numpy
+    - pip install -r requirements.txt
+    - pip install -e .
 test:
   override:
     # Test new qcp smart script, first only one case.
