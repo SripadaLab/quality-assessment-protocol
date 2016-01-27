@@ -264,12 +264,10 @@ def artifacts(anat_data, fg_mask_data, calculate_qi2=False):
     return (QI1,QI2)
 
 
-
 def fwhm(anat_file, mask_file, out_vox=False):
-
     """
     Calculate the FWHM of the input image.
-    
+
     Parameters
     ----------
     anat_file: str
@@ -278,38 +276,44 @@ def fwhm(anat_file, mask_file, out_vox=False):
         path to brain mask
     out_vox: bool
         output the FWHM as # of voxels (otherwise as mm)
-    
+
     Returns
     -------
     fwhm: tuple (x,y,z,combined)
         FWHM in the x, y, x, and combined direction
     """
-
-    import commands
+    from os import environ
+    import subprocess as sp
     import nibabel as nib
     import numpy as np
     from scipy.special import cbrt
-    
+
+    env = environ.copy()
+
+    # http://afni.nimh.nih.gov/afni/community/board/read.php?1,145346,145347#msg-145347
+    env['DYLD_FALLBACK_LIBRARY_PATH'] = '/usr/local/afni/'
+
     # call AFNI command to get the FWHM in x,y,z and combined
-    cmd     = "3dFWHMx -combined -mask %s -input %s" % (mask_file, anat_file)
-    out     = commands.getoutput(cmd)
-    
+    out = sp.check_output(['3dFWHMx', '-combined', '-mask', mask_file,
+                           '-input', anat_file], env=env)
+
     # extract output
-    line    = out.splitlines()[-1].strip()
-    vals    = np.array(line.split(), dtype=np.float)
-    
+    line = out.splitlines()[-1].strip()
+    vals = np.array(line.split(), dtype=np.float)
+
     if out_vox:
         # get pixel dimensions
-        img     = nib.load(anat_file)
-        hdr     = img.get_header()
-        pixdim  = hdr['pixdim'][1:4]
-    
+        img = nib.load(anat_file)
+        hdr = img.get_header()
+        pixdim = hdr['pixdim'][1:4]
+
         # convert to voxels
-        pixdim  = np.append(pixdim, cbrt(pixdim.prod()))
+        pixdim = np.append(pixdim, cbrt(pixdim.prod()))
         # get the geometrix mean
-        vals    = vals / pixdim
-    
+        vals = vals / pixdim
+
     return tuple(vals)
+
 
 
 
